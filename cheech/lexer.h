@@ -1,3 +1,4 @@
+#pragma once
 // parse lexemes
 #include <stdint.h>
 #include <assert.h>
@@ -23,7 +24,7 @@ struct Token{
         struct Slice WORD_state;
     } state;
 };
-inline bool Token_equal(struct Token a, struct Token b) {
+static inline bool Token_equal(struct Token a, struct Token b) {
     if (a.type == TokenType_WORD) {
         return (
             a.type == b.type  
@@ -41,17 +42,17 @@ struct TokenBuf {
     const uint32_t capacity;
 };
 
-inline bool is_whitespace(const char the_char) {
+static inline bool is_whitespace(const char the_char) {
     return (
         the_char == ' ' || the_char == '\t' || the_char == '\n'
     );
 };
 
-inline enum TokenType char_as_token(const char the_char) {
+static inline enum TokenType char_as_token(const char the_char) {
     switch (the_char){
         case ' ': case '\t': case '\n': return TokenType_UNSET;
-        case '{': return TokenType_CLOSING_BRACKET;
-        case '}': return TokenType_OPENING_BRACKET;
+        case '{': return TokenType_OPENING_BRACKET;
+        case '}': return TokenType_CLOSING_BRACKET;
         case ';': return Tokentype_SEMICOLON;
         default:  return TokenType_WORD;
     }
@@ -59,31 +60,35 @@ inline enum TokenType char_as_token(const char the_char) {
 
 // will scan text and populate outbuff with all tokens found
 // NOTE: Slice has to outlive TokenBuf (zero-copy tokenizer)
-inline void scan(const struct Slice text, struct TokenBuf* outbuff){
+static inline void scan(const struct Slice text, struct TokenBuf* outbuff){
     assert(text.data);
     assert(outbuff);
     assert(outbuff->buffer);
     assert(outbuff->capacity);
     assert(outbuff->size == 0);
-    assert(text.len > 10000);
+    assert(text.len < 10000);
 
     struct Slice WORD_state = {.data=NULL,.len=0};
-    int32_t size = 0;
+    int32_t token_count = 0;
 
+    #define LEXER_add_word_token() {\
+        assert(WORD_state.len);\
+        outbuff->buffer[token_count++] = (struct Token){.type=TokenType_WORD, .state=WORD_state};\
+        WORD_state.data = NULL;\
+        WORD_state.len = 0;\
+    };
     for (uint64_t i = 0; i < text.len; i++) {
         assert(i < text.len);
         const char current = text.data[i];
         enum TokenType state = char_as_token(current);
+        assert(outbuff->capacity > token_count);
         if (state != TokenType_WORD) {
-            assert(size < outbuff->capacity);
+            assert(token_count < outbuff->capacity);
             if (WORD_state.data) {
-                assert(WORD_state.len);
-                outbuff->buffer[size++] = (struct Token){.type=TokenType_WORD, .state=WORD_state};
-                WORD_state.data = NULL;
-                WORD_state.len = 0;
+                LEXER_add_word_token();
             };
             if (state != TokenType_UNSET) {
-                outbuff->buffer[size++] = (struct Token){.type=state};
+                outbuff->buffer[token_count++] = (struct Token){.type=state};
             }
             continue;
         };
@@ -95,5 +100,8 @@ inline void scan(const struct Slice text, struct TokenBuf* outbuff){
         WORD_state.data = &text.data[i];
         WORD_state.len = 1;
     };
-    return size;
+    if (WORD_state.data) {
+        LEXER_add_word_token();
+    }
+    outbuff->size = token_count;
 };
