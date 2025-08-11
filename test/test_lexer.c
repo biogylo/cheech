@@ -1,5 +1,6 @@
+// Copyright 2025 Juan Navarro
+
 #include <assert.h>
-#include <string.h>
 
 #include <cheech/lexer.h>
 
@@ -34,14 +35,14 @@ static inline void single_token() {
         assert(token_buf.size == scenario.expected_token_count);
         assert(token_buf.buffer[0].type == scenario.expected_token);
     };
-};
+}
 
 static inline void assert_TokenBuf_equal(const struct TokenBuf a, const struct  TokenBuf b){
     assert(a.size == b.size);
     for (uint32_t i = 0; i < a.size; i++) {
         assert(Token_equal(a.buffer[i], b.buffer[i]));
     };
-};
+}
 
 static inline void multi_token() {
     struct Token buffer[16];
@@ -54,18 +55,17 @@ static inline void multi_token() {
         char* the_chars;
         enum TokenType expected_token;
     };
-    
-    struct TokenBuf expected_token_buf = {
-        .buffer=buffer,
-        .capacity=sizeof(buffer)/sizeof(struct Token),
-        .size=0
-    };
-    // TODO!
+
+    struct TokenBuf expected_token_buf = {.buffer = buffer,
+                                          .capacity = sizeof(buffer) /
+                                                      sizeof(struct Token),
+                                          .size = 0};
+    // TODO(biogylo): make unit test for multi token cases!
 
     assert_TokenBuf_equal(token_buf, expected_token_buf);
-};
+}
 
 int main() {
     single_token();
     multi_token();
-};
+}

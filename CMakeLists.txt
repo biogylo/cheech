@@ -4,11 +4,21 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set($ENV{CTEST_OUTPUT_ON_FAILURE} TRUE)
 set(CTEST_OUTPUT_ON_FAILURE TRUE)
 set(CTEST_VERBOSE TRUE)
+set(CMAKE_C_CPPCHECK cppcheck)
+set(CMAKE_C_CPPLINT cpplint)
 set($ENV{CTEST_VERBOSE} ON)
 
 project(cheech C)
 
-add_compile_options(-fsanitize=address,undefined -g -Wall -Wextra -Werror)
+add_compile_options(
+    -fsanitize=address,undefined
+    -g
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Werror
+)
+
 add_link_options(
     -fsanitize=address,undefined
     -flto

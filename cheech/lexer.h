@@ -33,8 +33,7 @@ static inline bool Token_equal(struct Token a, struct Token b) {
         );
     };
     return a.type == b.type;
-
-};
+}
 
 struct TokenBuf {
     struct Token* buffer;
@@ -46,7 +45,7 @@ static inline bool is_whitespace(const char the_char) {
     return (
         the_char == ' ' || the_char == '\t' || the_char == '\n'
     );
-};
+}
 
 static inline enum TokenType char_as_token(const char the_char) {
     switch (the_char){
@@ -56,7 +55,7 @@ static inline enum TokenType char_as_token(const char the_char) {
         case ';': return Tokentype_SEMICOLON;
         default:  return TokenType_WORD;
     }
-};
+}
 
 // will scan text and populate outbuff with all tokens found
 // NOTE: Slice has to outlive TokenBuf (zero-copy tokenizer)
@@ -114,4 +113,4 @@ static inline void scan(const struct Slice text, struct TokenBuf* outbuff){
     if (WORD_state.data) {
         LEXER_add_word_token(outbuff, WORD_state);
     }
-};
+}
