@@ -68,27 +68,38 @@ static inline void scan(const struct Slice text, struct TokenBuf* outbuff){
     assert(outbuff->size == 0);
     assert(text.len < 10000);
 
-    struct Slice WORD_state = {.data=NULL,.len=0};
-    int32_t token_count = 0;
+    #define LEXER_add_token(outbuff, token) {\
+        int32_t token_count = outbuff->size;\
+        assert(token_count < outbuff->capacity);\
+        outbuff->buffer[token_count] = token;\
+        outbuff->size++;\
+    }
+    #define LEXER_add_word_token(outbuff, word_state) {\
+        assert(word_state.len);\
+        struct Token token = {\
+            .type=TokenType_WORD\
+        };\
+        token.state.WORD_state = word_state;\
+        word_state.data = NULL;\
+        word_state.len = 0;\
+        LEXER_add_token(outbuff, token);\
+    };
 
-    #define LEXER_add_word_token() {\
-        assert(WORD_state.len);\
-        outbuff->buffer[token_count++] = (struct Token){.type=TokenType_WORD, .state=WORD_state};\
-        WORD_state.data = NULL;\
-        WORD_state.len = 0;\
+    struct Slice WORD_state = {
+        .data=NULL,
+        .len=0
     };
     for (uint64_t i = 0; i < text.len; i++) {
         assert(i < text.len);
         const char current = text.data[i];
         enum TokenType state = char_as_token(current);
-        assert(outbuff->capacity > token_count);
         if (state != TokenType_WORD) {
-            assert(token_count < outbuff->capacity);
             if (WORD_state.data) {
-                LEXER_add_word_token();
+                LEXER_add_word_token(outbuff, WORD_state);
             };
             if (state != TokenType_UNSET) {
-                outbuff->buffer[token_count++] = (struct Token){.type=state};
+                struct Token token = {.type=state};
+                LEXER_add_token(outbuff, token);
             }
             continue;
         };
@@ -101,7 +112,6 @@ static inline void scan(const struct Slice text, struct TokenBuf* outbuff){
         WORD_state.len = 1;
     };
     if (WORD_state.data) {
-        LEXER_add_word_token();
+        LEXER_add_word_token(outbuff, WORD_state);
     }
-    outbuff->size = token_count;
 };

@@ -4,10 +4,11 @@
 #include <cheech/lexer.h>
 
 static inline void single_token() {
-    struct Token buffer[16];
+    const int BUFFER_SIZE = 16;
+    struct Token buffer[BUFFER_SIZE];
     struct TokenBuf token_buf = {
         .buffer=buffer,
-        .capacity=sizeof(buffer)/sizeof(struct Token),
+        .capacity=BUFFER_SIZE,
         .size=0
     };
     struct Scenario {
