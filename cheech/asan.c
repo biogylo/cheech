@@ -1,4 +1,5 @@
-const char* __asan_default_options() {
+// Copyright 2025 Juan Navarro
+const char *__asan_default_options() {
   return "detect_leaks=0:abort_on_error=1:halt_on_error=1";
 }
 
