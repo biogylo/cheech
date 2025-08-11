@@ -10,7 +10,8 @@ enum TokenType {
     TokenType_OPENING_BRACKET,
     TokenType_CLOSING_BRACKET,
     Tokentype_SEMICOLON,
-    TokenType_WORD
+    TokenType_WORD,
+    TokenType_INTEGRAL
 };
 
 struct Slice {
@@ -18,12 +19,22 @@ struct Slice {
     uint64_t len;
 };
 
+struct Integral {
+    uint64_t number;
+    bool sign;
+};
+
 struct Token {
     enum TokenType type;
     union {
         struct Slice WORD_state;
+        struct Integral INTEGRAL_state;
     } state;
 };
+
+static struct Slice Slice_from_char(const char* the_char) {
+    return (struct Slice){.data = the_char, .len = 1};
+}
 
 static inline bool Slice_equal(struct Slice a, struct Slice b) {
     if (a.len != b.len) {
@@ -82,13 +93,15 @@ static inline struct Token Token_NonWord(enum TokenType type) {
     struct Token token = {.type = type};
     return token;
 }
+
+static inline struct Token Token_Unset(void) {
+    return Token_NonWord(TokenType_UNSET);
+}
 static inline struct Token Token_CB(void) {
-    struct Token token = {.type = TokenType_CLOSING_BRACKET};
-    return token;
+    return Token_NonWord(TokenType_CLOSING_BRACKET);
 }
 static inline struct Token Token_OB(void) {
-    struct Token token = {.type = TokenType_OPENING_BRACKET};
-    return token;
+    return Token_NonWord(TokenType_OPENING_BRACKET);
 }
 static inline struct Token Token_Word(struct Slice slice) {
     assert(slice.len);
@@ -102,6 +115,10 @@ static inline struct Token Token_Word_Static(const char* str) {
 }
 
 static inline struct TokenBuf TokenBuf(struct Token* buffer, uint32_t capacity) {
+    assert(capacity >= 1);
+    for (uint32_t i = 0; i < capacity; i++) {
+        buffer[i] = Token_Unset();
+    }
     struct TokenBuf token_buf = {.buffer = buffer, .size = 0, .capacity = capacity};
     return token_buf;
 }

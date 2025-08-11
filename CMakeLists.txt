@@ -9,6 +9,7 @@ set(CTEST_VERBOSE TRUE)
 set(CMAKE_C_CPPCHECK cppcheck)#;--enable=all;--error-exitcode=1)
 set(CMAKE_C_CPPLINT cpplint;--linelength=120)
 set($ENV{CTEST_VERBOSE} ON)
+set(CMAKE_C_FLAGS_RELEASE "-O3")
 
 project(cheech C)
 

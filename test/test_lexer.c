@@ -7,9 +7,11 @@
 #define SCENARIO_COUNT (6)
 #define BUFFER_SIZE (16)
 
+static inline void scan_static(const char* str, struct TokenBuf* outbuff) {
+    scan(Slice(str), outbuff);
+}
+
 static inline void single_token(void) {
-    struct Token buffer[BUFFER_SIZE];
-    struct TokenBuf token_buf = {.buffer = buffer, .capacity = BUFFER_SIZE, .size = 0};
     struct Scenario {
         char the_char;
         enum TokenType expected_token;
@@ -24,11 +26,13 @@ static inline void single_token(void) {
         {.the_char = '7', .expected_token = TokenType_WORD, .expected_token_count = 1},
     };
     assert(sizeof(scenarios) / sizeof(struct Scenario) == SCENARIO_COUNT);
+
+    struct Token buffer[BUFFER_SIZE];
+    struct TokenBuf token_buf;
     for (uint32_t i = 0; i < sizeof(scenarios) / sizeof(struct Scenario); i++) {
         struct Scenario scenario = scenarios[i];
-        token_buf.buffer[0].type = TokenType_UNSET;
-        token_buf.size = 0;
-        scan((struct Slice){.data = &scenario.the_char, .len = 1}, &token_buf);
+        token_buf = TokenBuf(buffer, BUFFER_SIZE);
+        scan(Slice_from_char(&scenario.the_char), &token_buf);
         assert(token_buf.size == scenario.expected_token_count);
         assert(token_buf.buffer[0].type == scenario.expected_token);
     }
@@ -47,27 +51,27 @@ static inline void multi_token(void) {
     struct Token buffer[BUFFER_SIZE];
     struct TokenBuf token_buf;
     token_buf = TokenBuf(buffer, BUFFER_SIZE);
-    scan(Slice("{w}"), &token_buf);
+    scan_static("{w}", &token_buf);
     TokenBuf_assert_equal(token_buf, expected_token_buf);
 
     token_buf = TokenBuf(buffer, BUFFER_SIZE);
-    scan(Slice("{w }"), &token_buf);
+    scan_static("{w }", &token_buf);
     TokenBuf_assert_equal(token_buf, expected_token_buf);
 
     token_buf = TokenBuf(buffer, BUFFER_SIZE);
-    scan(Slice("{ w}"), &token_buf);
+    scan_static("{ w}", &token_buf);
     TokenBuf_assert_equal(token_buf, expected_token_buf);
 
     token_buf = TokenBuf(buffer, BUFFER_SIZE);
-    scan(Slice("{ w }"), &token_buf);
+    scan_static("{ w }", &token_buf);
     TokenBuf_assert_equal(token_buf, expected_token_buf);
 
     token_buf = TokenBuf(buffer, BUFFER_SIZE);
-    scan(Slice(" {  w  } "), &token_buf);
+    scan_static(" {  w  } ", &token_buf);
     TokenBuf_assert_equal(token_buf, expected_token_buf);
 
     token_buf = TokenBuf(buffer, BUFFER_SIZE);
-    scan(Slice(" \t\n{  w \n}\n"), &token_buf);
+    scan_static(" \t\n{  w \n}\n", &token_buf);
     TokenBuf_assert_equal(token_buf, expected_token_buf);
 }
 
