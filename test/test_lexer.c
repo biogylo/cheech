@@ -14,9 +14,10 @@ static inline void single_token() {
     struct Scenario {
         char the_char;
         enum TokenType expected_token;
-        int expected_token_count;
+        uint32_t expected_token_count;
     };
-    struct Scenario scenarios[] = {
+    #define SCENARIO_COUNT (6)
+    struct Scenario scenarios[SCENARIO_COUNT] = {
         {.the_char='{', .expected_token = TokenType_OPENING_BRACKET, .expected_token_count=1},
         {.the_char='}', .expected_token = TokenType_CLOSING_BRACKET, .expected_token_count=1},
         {.the_char=' ',  .expected_token = TokenType_UNSET, .expected_token_count=0},
@@ -24,7 +25,8 @@ static inline void single_token() {
         {.the_char='b',  .expected_token = TokenType_WORD, .expected_token_count=1},
         {.the_char='7',  .expected_token = TokenType_WORD, .expected_token_count=1},
     };
-    for (int i = 0; i<sizeof(scenarios)/sizeof(struct Scenario); i++) {
+    assert(sizeof(scenarios)/sizeof(struct Scenario) == SCENARIO_COUNT);
+    for (uint32_t i = 0; i<sizeof(scenarios)/sizeof(struct Scenario); i++) {
         buffer[0].type = TokenType_UNSET;
         struct Scenario scenario = scenarios[i];
         token_buf.size = 0;
@@ -36,7 +38,7 @@ static inline void single_token() {
 
 static inline void assert_TokenBuf_equal(const struct TokenBuf a, const struct  TokenBuf b){
     assert(a.size == b.size);
-    for (int i = 0; i < a.size; i++) {
+    for (uint32_t i = 0; i < a.size; i++) {
         assert(Token_equal(a.buffer[i], b.buffer[i]));
     };
 };

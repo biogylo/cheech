@@ -69,7 +69,7 @@ static inline void scan(const struct Slice text, struct TokenBuf* outbuff){
     assert(text.len < 10000);
 
     #define LEXER_add_token(outbuff, token) {\
-        int32_t token_count = outbuff->size;\
+        uint32_t token_count = outbuff->size;\
         assert(token_count < outbuff->capacity);\
         outbuff->buffer[token_count] = token;\
         outbuff->size++;\
