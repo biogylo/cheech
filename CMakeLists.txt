@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 4.0)
 set(CMAKE_C_COMPILER gcc)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set($ENV{CTEST_OUTPUT_ON_FAILURE} TRUE)
-set(CTEST_OUTPUT_ON_FAILURE TRUE)
+set($ENV{CTEST_OUTPUT_ON_FAILURE} 1)
+set(CTEST_OUTPUT_ON_FAILURE 1)
 set(CTEST_VERBOSE TRUE)
-set(CMAKE_C_CPPCHECK cppcheck)
-set(CMAKE_C_CPPLINT cpplint)
+# set(CPPLINT_COMMAND_ARGS "--linelength=120")
+
+set(CMAKE_C_CPPCHECK cppcheck)#;--enable=all;--error-exitcode=1)
+set(CMAKE_C_CPPLINT cpplint;--linelength=120)
 set($ENV{CTEST_VERBOSE} ON)
 
 project(cheech C)

@@ -6,111 +6,169 @@
 #include <stdio.h>
 
 enum TokenType {
-  TokenType_UNSET = 0,
-  TokenType_OPENING_BRACKET,
-  TokenType_CLOSING_BRACKET,
-  Tokentype_SEMICOLON,
-  TokenType_WORD
+    TokenType_UNSET = 0,
+    TokenType_OPENING_BRACKET,
+    TokenType_CLOSING_BRACKET,
+    Tokentype_SEMICOLON,
+    TokenType_WORD
 };
 
 struct Slice {
-  char const *data;
-  uint64_t len;
+    char const* data;
+    uint64_t len;
 };
 
 struct Token {
-  enum TokenType type;
-  union {
-    struct Slice WORD_state;
-  } state;
+    enum TokenType type;
+    union {
+        struct Slice WORD_state;
+    } state;
 };
+
+static inline bool Slice_equal(struct Slice a, struct Slice b) {
+    if (a.len != b.len) {
+        return false;
+    }
+    if (a.len == 0) {
+        return true;
+    }
+    for (uint32_t i = 0; i < a.len; i++) {
+        if (a.data[i] != b.data[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static inline bool Token_equal(struct Token a, struct Token b) {
-  if (a.type == TokenType_WORD) {
-    return (a.type == b.type &&
-            a.state.WORD_state.data == b.state.WORD_state.data &&
-            a.state.WORD_state.len == b.state.WORD_state.len);
-  };
-  return a.type == b.type;
+    if (a.type == TokenType_WORD) {
+        return (a.type == b.type && Slice_equal(a.state.WORD_state, b.state.WORD_state));
+    };
+    return a.type == b.type;
+}
+static inline uint32_t str_len(const char* str) {
+    uint32_t len = 0;
+    while (true) {
+        if (str[len] == 0) {
+            return len;
+        }
+        len++;
+    }
 }
 
 struct TokenBuf {
-  struct Token *buffer;
-  uint32_t size;
-  const uint32_t capacity;
+    struct Token* buffer;
+    uint32_t size;
+    uint32_t capacity;
 };
 
-static inline bool is_whitespace(const char the_char) {
-  return (the_char == ' ' || the_char == '\t' || the_char == '\n');
+static inline void TokenBuf_assert_equal(const struct TokenBuf a, const struct TokenBuf b) {
+    assert(a.size == b.size);
+    for (uint32_t i = 0; i < a.size; i++) {
+        struct Token token_a = a.buffer[i];
+        struct Token token_b = b.buffer[i];
+        assert(Token_equal(token_a, token_b));
+    }
+}
+
+static inline struct Slice Slice(const char* inline_str) {
+    uint32_t len = str_len(inline_str);
+    struct Slice slice = {.data = inline_str, .len = len};
+    return slice;
+}
+
+static inline struct Token Token_NonWord(enum TokenType type) {
+    assert(type != TokenType_WORD);
+    struct Token token = {.type = type};
+    return token;
+}
+static inline struct Token Token_CB(void) {
+    struct Token token = {.type = TokenType_CLOSING_BRACKET};
+    return token;
+}
+static inline struct Token Token_OB(void) {
+    struct Token token = {.type = TokenType_OPENING_BRACKET};
+    return token;
+}
+static inline struct Token Token_Word(struct Slice slice) {
+    assert(slice.len);
+    assert(slice.data);
+    struct Token token = {.type = TokenType_WORD, .state = {slice}};
+    return token;
+}
+static inline struct Token Token_Word_Static(const char* str) {
+    struct Token token = {.type = TokenType_WORD, .state = {Slice(str)}};
+    return token;
+}
+
+static inline struct TokenBuf TokenBuf(struct Token* buffer, uint32_t capacity) {
+    struct TokenBuf token_buf = {.buffer = buffer, .size = 0, .capacity = capacity};
+    return token_buf;
+}
+
+static inline void TokenBuf_append(struct TokenBuf* token_buf, struct Token token) {
+    assert(token_buf->capacity > token_buf->size);
+    token_buf->buffer[token_buf->size] = token;
+    token_buf->size++;
 }
 
 static inline enum TokenType char_as_token(const char the_char) {
-  switch (the_char) {
-  case ' ':
-  case '\t':
-  case '\n':
-    return TokenType_UNSET;
-  case '{':
-    return TokenType_OPENING_BRACKET;
-  case '}':
-    return TokenType_CLOSING_BRACKET;
-  case ';':
-    return Tokentype_SEMICOLON;
-  default:
-    return TokenType_WORD;
-  }
+    switch (the_char) {
+    case ' ':
+    case '\t':
+    case '\n':
+        return TokenType_UNSET;
+    case '{':
+        return TokenType_OPENING_BRACKET;
+    case '}':
+        return TokenType_CLOSING_BRACKET;
+    case ';':
+        return Tokentype_SEMICOLON;
+    default:
+        return TokenType_WORD;
+    }
 }
 
 // will scan text and populate outbuff with all tokens found
 // NOTE: Slice has to outlive TokenBuf (zero-copy tokenizer)
-static inline void scan(const struct Slice text, struct TokenBuf *outbuff) {
-  assert(text.data);
-  assert(outbuff);
-  assert(outbuff->buffer);
-  assert(outbuff->capacity);
-  assert(outbuff->size == 0);
-  assert(text.len < 10000);
+static inline void scan(const struct Slice text, struct TokenBuf* outbuff) {
+    assert(text.data);
+    assert(outbuff);
+    assert(outbuff->buffer);
+    assert(outbuff->capacity);
+    assert(outbuff->size == 0);
+    assert(text.len < 10000);
 
-#define LEXER_add_token(outbuff, token)                                        \
-  {                                                                            \
-    uint32_t token_count = outbuff->size;                                      \
-    assert(token_count < outbuff->capacity);                                   \
-    outbuff->buffer[token_count] = token;                                      \
-    outbuff->size++;                                                           \
-  }
-#define LEXER_add_word_token(outbuff, word_state)                              \
-  {                                                                            \
-    assert(word_state.len);                                                    \
-    struct Token token = {.type = TokenType_WORD};                             \
-    token.state.WORD_state = word_state;                                       \
-    word_state.data = NULL;                                                    \
-    word_state.len = 0;                                                        \
-    LEXER_add_token(outbuff, token);                                           \
-  };
-
-  struct Slice WORD_state = {.data = NULL, .len = 0};
-  for (uint64_t i = 0; i < text.len; i++) {
-    assert(i < text.len);
-    const char current = text.data[i];
-    enum TokenType state = char_as_token(current);
-    if (state != TokenType_WORD) {
-      if (WORD_state.data) {
-        LEXER_add_word_token(outbuff, WORD_state);
-      };
-      if (state != TokenType_UNSET) {
-        struct Token token = {.type = state};
-        LEXER_add_token(outbuff, token);
-      }
-      continue;
+#define LEXER_add_word_token(outbuff, word_state)         \
+    {                                                     \
+        TokenBuf_append(outbuff, Token_Word(word_state)); \
+        word_state.data = NULL;                           \
+        word_state.len = 0;                               \
     };
-    assert(state == TokenType_WORD);
+
+    struct Slice WORD_state = {.data = NULL, .len = 0};
+    for (uint64_t i = 0; i < text.len; i++) {
+        assert(i < text.len);
+        const char current = text.data[i];
+        enum TokenType state = char_as_token(current);
+        if (state != TokenType_WORD) {
+            if (WORD_state.data) {
+                LEXER_add_word_token(outbuff, WORD_state);
+            };
+            if (state != TokenType_UNSET) {
+                TokenBuf_append(outbuff, Token_NonWord(state));
+            }
+            continue;
+        };
+        assert(state == TokenType_WORD);
+        if (WORD_state.data) {
+            WORD_state.len++;
+            continue;
+        };
+        WORD_state.data = &text.data[i];
+        WORD_state.len = 1;
+    };
     if (WORD_state.data) {
-      WORD_state.len++;
-      continue;
-    };
-    WORD_state.data = &text.data[i];
-    WORD_state.len = 1;
-  };
-  if (WORD_state.data) {
-    LEXER_add_word_token(outbuff, WORD_state);
-  }
+        LEXER_add_word_token(outbuff, WORD_state); // NOLINT
+    }
 }
